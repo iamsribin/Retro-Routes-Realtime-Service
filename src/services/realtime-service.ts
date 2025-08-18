@@ -1,111 +1,204 @@
-import { createRabbit } from '../config/rabbitmq';
-import { getIo } from '../socket';
-import { markProcessed } from '../utils/idempotency';
-import { acquireLock, releaseLock } from '../utils/locks';
-import { redis } from '../config/redis';
+// import { createRabbit, RabbitMQPublisher } from "../config/rabbitmq";
+// import { getIo } from "../socket";
+// import { markProcessed } from "../utils/idempotency";
+// import { RideRequestManager } from "../manager/ride-request-manager";
+// import { BookingRequestPayload } from "../types/booking-types";
 
-export class RealtimeService {
-  ch: any;
+// export class RealtimeService {
+//   ch: any;
+//   private rideRequestManager: RideRequestManager;
 
-  async start() {
-    const { conn, ch } = await createRabbit();
-    this.ch = ch;
+//   constructor() {
+//     this.rideRequestManager = RideRequestManager.getInstance();
+//   }
 
-    // BookingRequest consumer
-    await ch.consume('realtime.bookingRequest', async (msg) => {
-      if (!msg) return;
-      try {
-        const raw = msg.content.toString();
-        const payload = JSON.parse(raw);
-        await this.handleBookingRequest(payload);
-        ch.ack(msg);
-      } catch (err) {
-        console.error('bookingRequest handler error', err);
-        // on error — NACK and route to DLQ after retries (simple approach: NACK without requeue)
-        ch.nack(msg, false, false);
-      }
-    });
+//   async start() {
+//     const { conn, ch } = await createRabbit();
+//     this.ch = ch;
 
-    // DriverDocExpired consumer
-    await ch.consume('realtime.driverDocExpired', async (msg) => {
-      if (!msg) return;
-      try {
-        const payload = JSON.parse(msg.content.toString());
-        await this.handleDriverDocExpired(payload);
-        ch.ack(msg);
-      } catch (err) {
-        console.error('driverDocExpired handler error', err);
-        ch.nack(msg, false, false);
-      }
-    });
-  }
+//     // Initialize RabbitMQ publisher
+//     await RabbitMQPublisher.initialize(ch);
 
-  async handleBookingRequest(payload: any) {
-    // idempotency
-    if (!payload || !payload.requestId) throw new Error('invalid payload');
-    const first = await markProcessed(payload.requestId);
-    if (!first) {
-      console.log('Duplicate bookingRequest', payload.requestId);
-      return;
-    }
+//     console.log("🚀 Realtime service started with RabbitMQ consumers");
 
-    // Validate
-    if (!Array.isArray(payload.candidates) || payload.candidates.length === 0) {
-      // Inform booking service (optionally) or just end
-      console.log('no drivers candidates');
-      return;
-    }
+//     // BookingRequest consumer - handles new ride requests
+//     await ch.consume("realtime.bookingRequest", async (msg) => {
+//       if (!msg) return;
+//       try {
+//         console.log("realtime.bookingRequest msg:", msg);
 
-    // We'll chunk and emit to drivers
-    const io = getIo();
-    const CHUNK = 20;
-    const chunks = [];
-    for (let i = 0; i < payload.candidates.length; i += CHUNK) {
-      chunks.push(payload.candidates.slice(i, i + CHUNK));
-    }
+//         const raw = msg.content.toString();
+//         const payload: BookingRequestPayload = JSON.parse(raw);
+//         console.log("realtime.bookingRequest payload:", payload);
 
-    // For each candidate chunk emit and start accept timers
-    for (const chunk of chunks) {
-      // Emit a single message for that chunk - compact
-      const message = {
-        bookingId: payload.bookingId,
-        requestId: payload.requestId,
-        candidates: chunk,
-        timeoutSeconds: payload.timeoutSeconds || 30
-      };
+//         await this.handleBookingRequest(payload);
+//         ch.ack(msg);
+//       } catch (err) {
+//         console.error("❌ BookingRequest handler error:", err);
+//         ch.nack(msg, false, false); // Send to DLQ
+//       }
+//     });
 
-      // For each driver in chunk, emit - drivers are in rooms like `driver:{id}`
-      for (const driver of chunk) {
-        const room = `driver:${driver.driverId}`;
-        // check if driver is online via heartbeat quick check
-        const hb = await redis.get(`driver:heartbeat:${driver.driverId}`);
-        if (!hb) {
-          // driver offline — skip
-          console.log('driver offline skip', driver.driverId);
-          continue;
-        }
-        io.to(room).emit('ride:request', message);
-      }
-    }
+//     // DriverDocExpired consumer - handles driver document expiration
+//     await ch.consume("realtime.driverDocExpired", async (msg) => {
+//       if (!msg) return;
+//       try {
+//         const payload = JSON.parse(msg.content.toString());
+//         await this.handleDriverDocExpired(payload);
+//         ch.ack(msg);
+//       } catch (err) {
+//         console.error("❌ DriverDocExpired handler error:", err);
+//         ch.nack(msg, false, false);
+//       }
+//     });
+//   }
 
-    // Optionally store bookingRequest state in Redis to track which drivers were pinged
-    const key = `booking:request:${payload.bookingId}`;
-    await redis.set(key, JSON.stringify({ requestId: payload.requestId, candidates: payload.candidates }), 'EX', 60 * 5);
-  }
+//   async handleBookingRequest(payload: BookingRequestPayload) {
+//     try {
+//       // Idempotency check
+//       if (!payload || !payload.requestId) {
+//         throw new Error("Invalid payload: missing requestId");
+//       }
 
-  async handleDriverDocExpired(payload: any) {
-    if (!payload || !payload.requestId) throw new Error('invalid payload');
-    const first = await markProcessed(payload.requestId);
-    if (!first) return;
+//       const isFirstTime = await markProcessed(payload.requestId);
+//       if (!isFirstTime) {
+//         console.log(`⚠️  Duplicate booking request: ${payload.requestId}`);
+//         return;
+//       }
 
-    const io = getIo();
-    const room = `driver:${payload.driverId}`;
-    // Emit doc expired notification to driver UI
-    io.to(room).emit('driver:doc:expired', {
-      driverId: payload.driverId,
-      expiredFields: payload.expiredFields || [],
-      message: 'One or more documents expired. Please update.'
-    });
-    // Optionally broadcast to admin: io.to('admin').emit('driver:doc:expired', ...)
-  }
-}
+//       console.log(
+//         `📥 Received booking request: ${payload.bookingId} with ${payload.drivers.length} drivers`
+//       );
+
+//       // Validate payload
+//       if (!payload.bookingId) {
+//         throw new Error("Invalid payload: missing bookingId");
+//       }
+
+//       // if (
+//       //   !Array.isArray(payload.drivers) ||
+//       //   payload.drivers.length === 0
+//       // ) {
+//       //   console.log(`😞 No driver drivers for booking ${payload.bookingId}`);
+
+//       //   // Immediately notify booking service about no drivers
+//       //   await RabbitMQPublisher.publish("booking.status.update", {
+//       //     bookingId: payload.bookingId,
+//       //     requestId: payload.requestId,
+//       //     status: "cancelled",
+//       //     reason: "no_drivers_available",
+//       //     timestamp: new Date(),
+//       //   });
+
+//       //   // Notify user
+//       //   const io = getIo();
+//       //   const userRoom = `user:${payload.user.userId}`;
+//       //   io.to(userRoom).emit("booking:no_drivers", {
+//       //     bookingId: payload.bookingId,
+//       //     message:
+//       //       "Currently no drivers are available. Please try again later.",
+//       //   });
+
+//       //   return;
+//       // }
+
+//       // Transform the payload to include proper structure
+
+//       const bookingRequestPayload: BookingRequestPayload = {
+//         bookingId: payload.bookingId,
+//         rideId: payload.rideId,
+//         requestId: payload.requestId,
+//         user: payload.user,
+//         pickupCoordinates: payload.pickupCoordinates,
+//         dropCoordinates: payload.dropCoordinates,
+//         distance: payload.distance,
+//         price: payload.price,
+//         pin: payload.pin,
+//         drivers: payload.drivers,
+//         estimatedDuration: payload.estimatedDuration,
+//         timeoutSeconds: payload.timeoutSeconds || 30,
+//         createdAt: new Date(),
+//       };
+
+//       // Delegate to ride request managerd
+//       await this.rideRequestManager.handleBookingRequest(bookingRequestPayload);
+//     } catch (error) {
+//       console.error("❌ Error handling booking request:", error);
+//       throw error;
+//     }
+//   }
+
+//   async handleDriverDocExpired(payload: any) {
+//     try {
+//       if (!payload || !payload.requestId) {
+//         throw new Error("Invalid payload: missing requestId");
+//       }
+
+//       const isFirstTime = await markProcessed(payload.requestId);
+//       if (!isFirstTime) {
+//         console.log(`⚠️  Duplicate driver doc expired: ${payload.requestId}`);
+//         return;
+//       }
+
+//       console.log(`📄 Driver document expired: ${payload.driverId}`);
+
+//       const io = getIo();
+//       const driverRoom = `driver:${payload.driverId}`;
+
+//       // Emit doc expired notification to driver
+//       io.to(driverRoom).emit("driver:doc:expired", {
+//         driverId: payload.driverId,
+//         expiredFields: payload.expiredFields || [],
+//         message:
+//           "One or more documents expired. Please update to continue receiving ride requests.",
+//         severity: "warning",
+//         timestamp: new Date(),
+//       });
+
+//       // Optionally notify admin
+//       io.to("admin").emit("driver:doc:expired", {
+//         driverId: payload.driverId,
+//         expiredFields: payload.expiredFields || [],
+//         timestamp: new Date(),
+//       });
+
+//       console.log(
+//         `✅ Notified driver ${payload.driverId} about expired documents`
+//       );
+//     } catch (error) {
+//       console.error("❌ Error handling driver doc expired:", error);
+//       throw error;
+//     }
+//   }
+
+//   // Method to handle driver acceptance from socket
+//   async handleDriverAcceptance(
+//     bookingId: string,
+//     driverId: string
+//   ): Promise<boolean> {
+//     return await this.rideRequestManager.handleDriverAcceptance(
+//       bookingId,
+//       driverId
+//     );
+//   }
+
+//   // Method to handle driver rejection from socket
+//   async handleDriverRejection(
+//     bookingId: string,
+//     driverId: string
+//   ): Promise<void> {
+//     await this.rideRequestManager.handleDriverRejection(bookingId, driverId);
+//   }
+
+//   // Graceful shutdown
+//   async stop() {
+//     try {
+//       if (this.ch) {
+//         await this.ch.close();
+//         console.log("✅ RabbitMQ channel closed");
+//       }
+//     } catch (error) {
+//       console.error("❌ Error stopping realtime service:", error);
+//     }
+//   }
+// }
