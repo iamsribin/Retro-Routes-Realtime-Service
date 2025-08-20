@@ -1,15 +1,15 @@
-import { redis } from "../config/redis";
+import { getDriverDetails, getDriverGeo, redis } from "../config/redis";
+import { RabbitMQPublisher } from "../events/publisher";
 import { getIo } from "../socket";
-import { RabbitMQPublisher } from "../config/rabbitmq";
 import {
   BookingRequestPayload,
   DriverDetails,
   RideRequest,
   DriverTimeoutPayload,
-  BookingStatusPayload,
   UserNotificationPayload,
   DriverAssignmentPayload,
   bookingState,
+  RideStatusData,
 } from "../types/booking-types";
 
 export class RideRequestManager {
@@ -26,7 +26,7 @@ export class RideRequestManager {
   }
 
   async handleBookingRequest(payload: BookingRequestPayload): Promise<void> {
-    try {      
+    try {
       // Store booking state in Redis
       const bookingKey = `booking:request:${payload.bookingId}`;
       const bookingState = {
@@ -106,20 +106,20 @@ export class RideRequestManager {
         userProfile: bookingState.user.userProfile,
         userNumber: bookingState.user.userNumber,
       },
-      bookingDetails:{
-        rideId:bookingState.rideId,
-        bookingId:bookingState.bookingId,
-        createdAt:bookingState.createdAt,
-        dropoffLocation:bookingState.dropCoordinates,
-        pickupLocation:bookingState.pickupCoordinates,
-        estimatedDistance:bookingState.distance,
-        estimatedDuration:bookingState.estimatedDuration,
-        fareAmount:bookingState.price,
-        securityPin:bookingState.pin,
-        status:bookingState.status, 
-        vehicleType:driver.vehicleModel,       
+      bookingDetails: {
+        rideId: bookingState.rideId,
+        bookingId: bookingState.bookingId,
+        createdAt: bookingState.createdAt,
+        dropoffLocation: bookingState.dropCoordinates,
+        pickupLocation: bookingState.pickupCoordinates,
+        estimatedDistance: bookingState.distance,
+        estimatedDuration: bookingState.estimatedDuration,
+        fareAmount: bookingState.price,
+        securityPin: bookingState.pin,
+        status: bookingState.status,
+        vehicleType: driver.vehicleModel,
       },
-      requestTimeout:bookingState.timeoutSeconds,
+      requestTimeout: bookingState.timeoutSeconds,
     };
 
     // Store current driver request
@@ -128,10 +128,6 @@ export class RideRequestManager {
 
     // Emit to driver
     io.to(driverRoom).emit("ride:request", rideRequest);
-
-    console.log(
-      `📤 Sent ride request to driver ${driver.driverId} for booking ${bookingState.bookingId}`
-    );
   }
 
   private async setDriverTimeout(
@@ -180,7 +176,6 @@ export class RideRequestManager {
     }
   }
 
-
   private async moveToNextDriver(bookingId: string): Promise<void> {
     const bookingKey = `booking:request:${bookingId}`;
     const bookingStateStr = await redis.get(bookingKey);
@@ -197,74 +192,78 @@ export class RideRequestManager {
   }
 
   private async assignDriverToBooking(
-    bookingState: any,
+    bookingState: BookingRequestPayload,
     driver: DriverDetails
   ): Promise<void> {
-    // Call update function (placeholder - you mentioned you don't want implementation)
-    await this.updateBookingWithDriver(bookingState.bookingId, driver);
-
-    // Notify booking service
+    try {
+      const coordinates = await getDriverGeo(driver.driverId);
+    // update booking service
     const assignmentPayload: DriverAssignmentPayload = {
       bookingId: bookingState.bookingId,
-      requestId: bookingState.requestId,
-      driverId: driver.driverId,
-      driver,
-      timestamp: new Date(),
+      rideId: bookingState.rideId,
+      driver: {
+        driverId: driver.driverId,
+        driverName: driver.driverName,
+        driverProfile: driver.driverPhoto,
+        driverNumber: driver.phoneNumber,
+      },
+      driverCoordinates: coordinates,
     };
 
-    await RabbitMQPublisher.publish(
-      "booking.driver.assigned",
-      assignmentPayload
-    );
+    await RabbitMQPublisher.publish("driver.acceptance", assignmentPayload);
 
     // Notify user via socket
     const io = getIo();
     const userRoom = `user:${bookingState.user.userId}`;
 
-    io.to(userRoom).emit("booking:driver:assigned", {
-      bookingId: bookingState.bookingId,
-      rideId: bookingState.rideId,
-      driver: {
-        id: driver.driverId,
-        name: driver.driverName || "Driver",
-        photo: driver.driverPhoto,
+    const userRideAcceptData: RideStatusData = {
+      ride_id: bookingState.rideId,
+      userId:bookingState.user.userId,
+      booking: {
+        date: bookingState.createdAt,
+        distance: bookingState.distance,
+        pickupCoordinates: bookingState.pickupCoordinates,
+        dropoffCoordinates: bookingState.dropCoordinates,
+        pickupLocation: bookingState.pickupCoordinates.address,
+        dropoffLocation: bookingState.dropCoordinates.address,
+        duration: bookingState.estimatedDuration,
+        pin: bookingState.pin,
+        price: bookingState.price,
+        ride_id: bookingState.rideId,
+        status: "Accept",
+        vehicleModel: driver.vehicleModel,
+        _id: bookingState.bookingId,
+      },
+      status: "Accepted",
+      message: "Driver has accepted your ride",
+      chatMessages: [],
+      driverCoordinates: coordinates,
+      driverDetails: {
+        driverId: driver.driverId,
+        driverName: driver.driverName,
+        driverPhoto: driver.driverPhoto,
         rating: driver.rating,
         vehicleModel: driver.vehicleModel,
         vehicleNumber: driver.vehicleNumber,
         phoneNumber: driver.phoneNumber,
         distance: driver.distance,
+        cancelCount: driver.cancelCount,
+        score: driver.score,
       },
-      estimatedArrival: Math.ceil((driver.distance / 1000) * 3), // Rough estimate in minutes
-    });
-
-    // Also publish to user service queue
-    const userNotification: UserNotificationPayload = {
-      userId: bookingState.user.userId,
-      bookingId: bookingState.bookingId,
-      type: "driver_assigned",
-      message: `Driver ${driver.driverName || "assigned"} is on the way!`,
-      data: { driver, bookingState },
-      timestamp: new Date(),
     };
 
-    await RabbitMQPublisher.publish("user.notification", userNotification);
+    io.to(userRoom).emit("booking:driver:assigned", userRideAcceptData);
+    } catch (error) {
+      console.log("error",error);
+      
+    }
+    
   }
 
   private async handleNoDriversAvailable(bookingState: any): Promise<void> {
     console.log(
       `😞 No drivers available for booking ${bookingState.bookingId}`
     );
-
-    // Update booking status to cancelled
-    const statusPayload: BookingStatusPayload = {
-      bookingId: bookingState.bookingId,
-      requestId: bookingState.requestId,
-      status: "cancelled",
-      reason: "no_drivers_available",
-      timestamp: new Date(),
-    };
-
-    await RabbitMQPublisher.publish("booking.status.update", statusPayload);
 
     // Notify user via socket
     const io = getIo();
@@ -275,18 +274,6 @@ export class RideRequestManager {
       message: "Currently no drivers are available. Please try again later.",
     });
 
-    // Also publish to user service queue
-    const userNotification: UserNotificationPayload = {
-      userId: bookingState.user.userId,
-      bookingId: bookingState.bookingId,
-      type: "no_drivers_available",
-      message: "Currently no drivers are available. Please try again later.",
-      data: { bookingState },
-      timestamp: new Date(),
-    };
-
-    await RabbitMQPublisher.publish("user.notification", userNotification);
-
     // Clean up
     await this.cleanupBookingRequest(bookingState.bookingId);
   }
@@ -294,17 +281,6 @@ export class RideRequestManager {
   private async isDriverOnline(driverId: string): Promise<boolean> {
     const heartbeat = await redis.get(`driver:heartbeat:${driverId}`);
     return !!heartbeat;
-  }
-
-  private async updateBookingWithDriver(
-    bookingId: string,
-    driver: DriverDetails
-  ): Promise<void> {
-    // Placeholder function - you mentioned you just want this called
-    console.log(
-      `🔄 Updating booking ${bookingId} with driver ${driver.driverId}`
-    );
-    // This is where you would call your actual update service
   }
 
   private async cleanupBookingRequest(bookingId: string): Promise<void> {
@@ -320,7 +296,6 @@ export class RideRequestManager {
     }
   }
 
-  
   async handleDriverAcceptance(
     bookingId: string,
     driverId: string
@@ -399,3 +374,66 @@ export class RideRequestManager {
     }
   }
 }
+
+
+  //   const setupSocketListeners = () => {
+  //     if (!socket || !isConnected) return;
+
+  //     socket.on("rideStatus", (data: RideStatusData) => {
+  //       console.log("RideStatusData", data);
+
+  //       setIsSearching(false);
+  //       setShowVehicleSheet(false);
+  //       setRideStatus(data);
+  //       const notificationType = getNotificationType(data.status);
+  //       const navigateTo =
+  //         data.status === "Accepted" ? "/ride-tracking" : undefined;
+
+  //       dispatch(
+  //         showNotification({
+  //           type: notificationType,
+  //           message: data.message || `Ride status: ${data.status}`,
+  //           data: {
+  //             rideId: data.ride_id,
+  //             driverId:
+  //               data.status === "Accepted" ? data.driverDetails.driverId : null,
+  //           },
+  //           navigate: navigateTo,
+  //         })
+  //       );
+
+  //       if (
+  //         data.status === "Accepted" &&
+  //         data.driverCoordinates &&
+  //         data.booking?.pickupCoordinates
+  //       ) {
+  //         dispatch(showRideMap(data));
+  //         // fetchDriverRoute(data.driverCoordinates, {
+  //         //   lat: data.booking.pickupCoordinates.latitude,
+  //         //   lng: data.booking.pickupCoordinates.longitude,
+  //         // });
+  //       }
+  //     });
+
+  //     socket.on("error", (error: { message: string; code: string }) => {
+  //       setNotification({
+  //         open: true,
+  //         type: "error",
+  //         title: "Error",
+  //         message: error.message,
+  //       });
+  //     });
+  //   };
+
+  //     const getNotificationType = (
+  //   status: RideStatusData["status"]
+  // ): "success" | "error" | "info" => {
+  //   switch (status) {
+  //     case "Accepted":
+  //       return "success";
+  //     case "Failed":
+  //       return "error";
+  //     default:
+  //       return "info";
+  //   }
+  // };

@@ -15,8 +15,6 @@ export function handleUserSocket(socket: Socket, payload: any, io: Server) {
   socket.join(userRoom);
   socket.data = { id, role };
 
-console.log("user conner");
-
   // On disconnect
   socket.on('disconnect', (reason) => {
     console.log('socket disconnected', id, reason);

@@ -65,3 +65,12 @@ export async function getDriverDetails(driverId: string) {
 export async function addDriverGeo(driverId: string, lng: number, lat: number) {
   await redis.geoadd(GEO_KEY, lng, lat, driverId);
 }
+
+export async function getDriverGeo(driverId: string) {
+  const pos = await redis.geopos(GEO_KEY, driverId);
+  if (!pos || !pos[0]) {
+    return null; 
+  }
+  const [lng, lat] = pos[0]; 
+  return { latitude: parseFloat(lng), longitude: parseFloat(lat) };
+}

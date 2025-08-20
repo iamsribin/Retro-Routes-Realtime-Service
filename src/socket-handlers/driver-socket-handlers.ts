@@ -77,7 +77,7 @@ export function handleDriverSocket(socket: Socket, payload: any, io: Server) {
       console.log(`✅ Driver ${id} successfully rejected booking ${bookingId}`);
     } catch (err) {
       console.error("❌ Booking reject error:", err);
-      socket.emit("booking:reject:result", {
+      socket.emit("error", {
         success: false,
         error: "Server error while rejecting booking",
       });

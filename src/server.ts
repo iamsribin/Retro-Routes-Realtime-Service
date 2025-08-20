@@ -1,7 +1,7 @@
 import express from 'express';
 import http from 'http';
 import { initSocket } from './socket';
-import { Consumer } from './consumer/consumer';
+import { Consumer } from './events/consumer';
 // import { RealtimeService } from './services/realtime-service';
 import "dotenv/config";
 import { RideController } from './controller/ride-controller';

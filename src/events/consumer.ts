@@ -1,6 +1,7 @@
-import { createRabbit, RabbitMQPublisher } from "../config/rabbitmq";
+import { createRabbit } from "../config/rabbitmq";
 import { RideController } from "../controller/ride-controller";
 import { BookingRequestPayload } from "../types/booking-types";
+import { RabbitMQPublisher } from "./publisher";
 
 export class Consumer {
   ch: any;

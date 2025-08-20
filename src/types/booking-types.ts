@@ -38,8 +38,7 @@ export interface BookingRequestPayload {
   pickupCoordinates: LocationCoordinates;
   dropCoordinates: LocationCoordinates;
   distance: string;
-    estimatedDuration:string;
-
+  estimatedDuration: string;
   price: number;
   pin: number;
   drivers: DriverDetails[];
@@ -55,7 +54,7 @@ export interface bookingState {
   pickupCoordinates: LocationCoordinates;
   dropCoordinates: LocationCoordinates;
   distance: string;
-    estimatedDuration:string;
+  estimatedDuration: string;
 
   price: number;
   pin: number;
@@ -103,21 +102,16 @@ export interface DriverTimeoutPayload {
   timestamp: Date;
 }
 
-export interface BookingStatusPayload {
-  bookingId: string;
-  requestId: string;
-  status: "cancelled" | "assigned" | "pending";
-  driverId?: string;
-  reason?: string;
-  timestamp: Date;
-}
-
 export interface DriverAssignmentPayload {
   bookingId: string;
-  requestId: string;
-  driverId: string;
-  driver: DriverDetails;
-  timestamp: Date;
+  rideId: string;
+  driver: {
+    driverId: string;
+    driverName: string;
+    driverNumber: string;
+    driverProfile: string;
+  };
+  driverCoordinates: Coordinates;
 }
 
 export interface UserNotificationPayload {
@@ -127,4 +121,47 @@ export interface UserNotificationPayload {
   message: string;
   data?: any;
   timestamp: Date;
+}
+
+interface Booking {
+  date: Date;
+  distance: string;
+  pickupCoordinates: Coordinates;
+  dropoffCoordinates: Coordinates;
+  pickupLocation: string;
+  dropoffLocation: string;
+  duration: string;
+  pin: number;
+  price: number;
+  ride_id: string;
+  status: string;
+  vehicleModel: string;
+  _id: string;
+}
+
+interface Message {
+  sender: "driver" | "user";
+  content: string;
+  timestamp: string;
+  type: "text" | "image";
+  fileUrl?: string;
+}
+
+export interface RideStatusData {
+  ride_id: string;
+  status:
+    | "searching"
+    | "Accepted"
+    | "DriverComingToPickup"
+    | "RideStarted"
+    | "RideFinished"
+    | "Failed"
+    | "cancelled";
+  message: string;
+  booking: Booking;
+  driverCoordinates: Coordinates;
+  driverDetails: DriverDetails;
+  userId:string;
+  // userDetails: UserInfo;
+  chatMessages: Message[] | [];
 }
