@@ -5,6 +5,7 @@ import { Consumer } from './events/consumer';
 // import { RealtimeService } from './services/realtime-service';
 import "dotenv/config";
 import { RideController } from './controller/ride-controller';
+import "../src/utils/monitor-online-driver"
 
 const rideController = new RideController()
 

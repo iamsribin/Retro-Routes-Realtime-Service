@@ -118,6 +118,8 @@ export function handleDriverSocket(socket: Socket, payload: any, io: Server) {
   // Listen for heartbeat/ping
   socket.on("ping", async () => {
     try {
+      console.log("setHeartbeat ");
+      
       await setHeartbeat(id, 120);
       socket.emit("pong", { timestamp: new Date() });
     } catch (err) {

@@ -1,4 +1,4 @@
-import { getDriverDetails, getDriverGeo, redis } from "../config/redis";
+import { getDriverDetails, getDriverGeo, isDriverOnline, redis } from "../config/redis";
 import { RabbitMQPublisher } from "../events/publisher";
 import { getIo } from "../socket";
 import {
@@ -69,7 +69,7 @@ export class RideRequestManager {
       const currentDriver = drivers[currentDriverIndex];
 
       // Check if driver is online
-      const isOnline = await this.isDriverOnline(currentDriver.driverId);
+      const isOnline = await isDriverOnline(currentDriver.driverId);
       if (!isOnline) {
         console.log(
           `🔴 Driver ${currentDriver.driverId} is offline, skipping...`
@@ -167,7 +167,7 @@ export class RideRequestManager {
         timestamp: new Date(),
       };
 
-      await RabbitMQPublisher.publish("driver.timeout", timeoutPayload);
+      await RabbitMQPublisher.publish("driver.rejection", timeoutPayload);
 
       // Move to next driver
       await this.moveToNextDriver(bookingId);
@@ -255,7 +255,6 @@ export class RideRequestManager {
     io.to(userRoom).emit("booking:driver:assigned", userRideAcceptData);
     } catch (error) {
       console.log("error",error);
-      
     }
     
   }
@@ -276,11 +275,6 @@ export class RideRequestManager {
 
     // Clean up
     await this.cleanupBookingRequest(bookingState.bookingId);
-  }
-
-  private async isDriverOnline(driverId: string): Promise<boolean> {
-    const heartbeat = await redis.get(`driver:heartbeat:${driverId}`);
-    return !!heartbeat;
   }
 
   private async cleanupBookingRequest(bookingId: string): Promise<void> {
@@ -365,7 +359,7 @@ export class RideRequestManager {
         timestamp: new Date(),
       };
 
-      // await RabbitMQPublisher.publish('driver.rejection', rejectionPayload);
+      await RabbitMQPublisher.publish('driver.rejection', rejectionPayload);
 
       // Move to next driver
       await this.moveToNextDriver(bookingId);
