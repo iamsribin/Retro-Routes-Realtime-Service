@@ -43,6 +43,8 @@ export interface BookingRequestPayload {
   pin: number;
   drivers: DriverDetails[];
   timeoutSeconds?: number;
+  currentDriverIndex?: number;
+  status:string;
   createdAt: Date;
 }
 

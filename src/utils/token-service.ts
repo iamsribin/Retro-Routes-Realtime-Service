@@ -22,7 +22,7 @@ export class TokenService {
   }
 
   static generateTokens(clientId: string, role: string) {
-    const accessToken = jwt.sign(
+    const token = jwt.sign(
       { clientId, role },
       process.env.ACCESS_TOKEN || "retro-routes",
       { expiresIn: "15m" }
@@ -34,6 +34,6 @@ export class TokenService {
       { expiresIn: "7d" }
     );
 
-    return { accessToken, refreshToken };
+    return { token, refreshToken };
   }
 }

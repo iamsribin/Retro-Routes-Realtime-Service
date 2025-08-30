@@ -4,10 +4,18 @@ import { initSocket } from './socket';
 import { Consumer } from './events/consumer';
 // import { RealtimeService } from './services/realtime-service';
 import "dotenv/config";
-import { RideController } from './controller/ride-controller';
+// import { RideController } from './controller/ride-controller';
 import "../src/utils/monitor-online-driver"
+import { RideController } from './controller/implementation/ride-controller';
+import { RedisRepository } from './repository/implementation/redis-repository';
+import { RabbitMQPublisher } from './events/publisher';
+import { RideService } from './services/implementation/ride-service';
 
-const rideController = new RideController()
+
+  const redisRepo = new RedisRepository();
+
+  const realTimeService = new RideService(redisRepo);
+  const rideController = new RideController(realTimeService);
 
 const app = express();
 

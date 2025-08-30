@@ -1,5 +1,5 @@
 import { createRabbit } from "../config/rabbitmq";
-import { RideController } from "../controller/ride-controller";
+import { RideController } from "../controller/implementation/ride-controller";
 import { BookingRequestPayload } from "../types/booking-types";
 import { RabbitMQPublisher } from "./publisher";
 

@@ -47,7 +47,7 @@ export const authenticateSocket = async (
           const newTokens = verifyRefreshToken(refreshToken);
           socket.emit('token_refreshed', newTokens);
           
-          const decoded = jwt.verify(newTokens.accessToken, process.env.JWT_SECRET as string) as DecodedToken;
+          const decoded = jwt.verify(newTokens.token, process.env.JWT_SECRET as string) as DecodedToken;
           socket.decoded = decoded;
           console.log(`Token refreshed and authenticated ${decoded.role}: ${decoded.clientId}`);
           return next();
@@ -67,7 +67,7 @@ export const authenticateSocket = async (
 
 const verifyRefreshToken = (
   refreshToken: string
-): { accessToken: string; refreshToken: string } => {
+): { token: string; refreshToken: string } => {
   try {
     const decoded = TokenService.verifyRefreshToken(refreshToken);
     return TokenService.generateTokens(decoded.clientId, decoded.role);
