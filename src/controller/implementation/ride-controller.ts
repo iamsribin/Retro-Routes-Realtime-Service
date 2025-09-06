@@ -7,6 +7,14 @@ import { RealTimeResponseDTO } from "../../dto/real-time.dto";
 export class RideController implements IRideController {
   constructor(private _rideService: IRideService) {}
 
+  async driverStartRideNotify(payload) {
+    try {
+      this._rideService.driverStartRideNotify(payload);
+    } catch (error) {
+      console.log("error==", error);
+    }
+  }
+
   async handleBookingRequest(
     payload: BookingRequestPayload
   ): Promise<IResponse<null>> {

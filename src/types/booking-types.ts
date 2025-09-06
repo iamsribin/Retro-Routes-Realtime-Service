@@ -48,6 +48,13 @@ export interface BookingRequestPayload {
   createdAt: Date;
 }
 
+export interface DriverRideStartPayload{
+  userId:string;
+  bookingId: string;
+  driverId: string;
+  rideId:string;
+}
+
 export interface bookingState {
   bookingId: string;
   rideId: string;

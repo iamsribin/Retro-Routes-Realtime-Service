@@ -2,6 +2,7 @@ import { IRideService } from "../interfaces/i-real-time-service";
 import {
   BookingRequestPayload,
   DriverDetails,
+  DriverRideStartPayload,
   RideRequest,
   RideStatusData,
 } from "../../types/booking-types";
@@ -16,6 +17,18 @@ export class RideService implements IRideService {
   private activeRequests = new Map<string, NodeJS.Timeout>();
 
   constructor(private _redisRepo: IRedisRepository) {}
+
+  async driverStartRideNotify(payload: DriverRideStartPayload): Promise<void> {
+    try {
+      const io = getIo();
+      const userRoom = `user:${payload.userId}`;
+      console.log("userRoom",payload);
+      
+      io.to(userRoom).emit("driver:start:ride",payload)
+    } catch (error) {
+      console.log("err", error);
+    }
+  }
 
   async handleBookingRequest(
     payload: BookingRequestPayload
@@ -259,7 +272,6 @@ export class RideService implements IRideService {
     driver: DriverDetails
   ): Promise<void> {
     try {
-      
       const coordinates = await this._redisRepo.getDriverGeo(driver.driverId);
       const driverDetails = await this._redisRepo.getDriverDetails(
         driver.driverId
@@ -329,9 +341,8 @@ export class RideService implements IRideService {
         };
 
         io.to(userRoom).emit("booking:driver:assigned", userRideAcceptData);
-      }else{
-      throw new Error("something went wrong try again");
-
+      } else {
+        throw new Error("something went wrong try again");
       }
     } catch (error) {
       console.log(error);

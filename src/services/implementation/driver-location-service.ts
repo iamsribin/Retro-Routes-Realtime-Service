@@ -59,18 +59,27 @@ export class DriverLocationService implements IDriverLocationService {
     async handleDriverLocationUpdate(
     socket: Socket,
     driverId: string,
-    loc: { latitude: number; longitude: number },
+    data: { latitude: number; longitude: number; userId:string },
     isOnRide: boolean = false
   ): Promise<IResponse<null>> {
     try {
-      await this._realTimeRepo.addDriverGeo(driverId, loc.latitude, loc.longitude, isOnRide);
+      await this._realTimeRepo.addDriverGeo(driverId, data.latitude, data.longitude, isOnRide);
+      console.log("handleDriverLocationUpdate",isOnRide,data);
+      
       if (isOnRide) {
         const io = getIo();
-        const userRoom = `user:${socket.data.userId || ""}`;
+        const userRoom = `user:${data.userId || ""}`;
+        const coordinates ={
+          latitude:data.latitude,
+          longitude:data.longitude
+        }
         const driverData = {
           driverId,
-          coordinates: loc,
+          coordinates,
         };
+
+        console.log("driverData",driverData);
+        
         io.to(userRoom).emit("driver:location:change", driverData);
       }
       return {

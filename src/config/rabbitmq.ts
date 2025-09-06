@@ -13,6 +13,7 @@ export async function createRabbit() {
   // Realtime service queues
   await ch.assertQueue('realtime.bookingRequest', { durable: true });
   await ch.assertQueue('realtime.driverDocExpired', { durable: true });
+  await ch.assertQueue('realtime.driverStartRide', { durable: true });
 
   // Driver service queues (for timeout and rejection handling)
   await ch.assertQueue('driver.rejection', { durable: true });
@@ -26,6 +27,7 @@ export async function createRabbit() {
 
   // Bindings for realtime service
   await ch.bindQueue('realtime.bookingRequest', 'retro.routes', 'booking.request');
+  await ch.bindQueue('realtime.driverStartRide', 'retro.routes', 'driver.startRide');
   await ch.bindQueue('realtime.driverDocExpired', 'retro.routes', 'driver.doc.expired');
 
   // Bindings for driver service

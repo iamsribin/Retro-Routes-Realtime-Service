@@ -28,15 +28,15 @@ export function handleDriverSocket(socket: Socket, payload: any, io: Server) {
   
       console.log(`🚗 Driver ${id} connected and joined room: ${driverRoom}`);
   
-      socket.on("location:update", async (loc: { latitude: number; longitude: number }) => {
+      socket.on("location:update", async (loc: { latitude: number; longitude: number, userId:string }) => {
         const response = await driverLocationController.handleDriverLocationUpdate(socket, id, loc);
         if (response.status !== StatusCode.Accepted) {
           socket.emit("error", { success: false, error: response.message });
         }
       });
   
-      socket.on("location:update:ride_driver", async (loc: { latitude: number; longitude: number }) => {
-        const response = await driverLocationController.handleDriverLocationUpdate(socket, id, loc, true);
+      socket.on("location:update:ride_driver", async (data: { latitude: number; longitude: number; userId:string}) => {
+        const response = await driverLocationController.handleDriverLocationUpdate(socket, id, data, true);
         if (response.status !== StatusCode.Accepted) {
           socket.emit("error", { success: false, error: response.message });
         }

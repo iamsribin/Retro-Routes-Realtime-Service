@@ -26,7 +26,7 @@ export class DriverLocationController implements IDriverLocationController {
   async handleDriverLocationUpdate(
     socket: Socket,
     driverId: string,
-    loc: { latitude: number; longitude: number },
+    loc: { latitude: number; longitude: number; userId:string},
     isOnRide?: boolean
   ): Promise<IResponse<null>> {
     try {

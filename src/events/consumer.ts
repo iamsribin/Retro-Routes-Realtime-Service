@@ -30,6 +30,20 @@ export class Consumer {
       }
     });
 
+    await ch.consume("realtime.driverStartRide", async (msg) => {
+      if (!msg) return;
+      try {
+        const raw = msg.content.toString();
+        const payload: BookingRequestPayload = JSON.parse(raw);
+        console.log("realtime.driverStartRide payload:", payload);
+        await this._rideController.driverStartRideNotify(payload);
+        ch.ack(msg);
+      } catch (err) {             
+        console.error("❌ BookingRequest handler error:", err);
+        ch.nack(msg, false, false); // Send to DLQ
+      }
+    });
+
     // DriverDocExpired consumer - handles driver document expiration
     await ch.consume("realtime.driverDocExpired", async (msg) => {
       if (!msg) return;
