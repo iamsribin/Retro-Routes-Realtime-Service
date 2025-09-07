@@ -1,6 +1,6 @@
 import { createRabbit } from "../config/rabbitmq";
 import { RideController } from "../controller/implementation/ride-controller";
-import { BookingRequestPayload } from "../types/booking-types";
+import { BookingRequestPayload, cancelRideReq } from "../types/booking-types";
 import { RabbitMQPublisher } from "./publisher";
 
 export class Consumer {
@@ -44,6 +44,20 @@ export class Consumer {
       }
     });
 
+    await ch.consume("realtime.cancelRide", async (msg) => {
+      if (!msg) return;
+              const raw = msg.content.toString();
+        const payload: cancelRideReq = JSON.parse(raw);
+      console.log("cancel ride msg:",payload);
+      this._rideController.cancelRide(payload)
+      try {
+        ch.ack(msg);
+      } catch (err) {
+        console.error("❌ cancel ride error:", err);
+        ch.nack(msg, false, false);
+      }
+    });
+
     // DriverDocExpired consumer - handles driver document expiration
     await ch.consume("realtime.driverDocExpired", async (msg) => {
       if (!msg) return;
@@ -55,6 +69,7 @@ export class Consumer {
       }
     });
   }
+
 
   // Graceful shutdown
   async stop() {

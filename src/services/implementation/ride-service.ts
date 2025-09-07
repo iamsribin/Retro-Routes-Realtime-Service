@@ -1,6 +1,7 @@
 import { IRideService } from "../interfaces/i-real-time-service";
 import {
   BookingRequestPayload,
+  cancelRideReq,
   DriverDetails,
   DriverRideStartPayload,
   RideRequest,
@@ -22,9 +23,9 @@ export class RideService implements IRideService {
     try {
       const io = getIo();
       const userRoom = `user:${payload.userId}`;
-      console.log("userRoom",payload);
-      
-      io.to(userRoom).emit("driver:start:ride",payload)
+      console.log("userRoom", payload);
+
+      io.to(userRoom).emit("driver:start:ride", payload);
     } catch (error) {
       console.log("err", error);
     }
@@ -363,5 +364,17 @@ export class RideService implements IRideService {
     });
 
     await this._redisRepo.deleteBookingState(bookingState.bookingId);
+  }
+
+  async cancelRide(cancelData: cancelRideReq): Promise<void> {
+    try {
+      const io = getIo();
+      const driverRoom = `driver:${cancelData.driverId}`;
+
+      io.to(driverRoom).emit("booking:cancelled", {
+        rideId: cancelData.rideId,
+        message: "ride cancelled",
+      });
+    } catch (error) {}
   }
 }

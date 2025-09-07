@@ -174,3 +174,10 @@ export interface RideStatusData {
   // userDetails: UserInfo;
   chatMessages: Message[] | [];
 }
+
+
+export interface cancelRideReq{
+rideId:string;
+driverId:string;
+userId:string;
+}
