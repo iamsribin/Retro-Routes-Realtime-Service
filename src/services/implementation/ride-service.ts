@@ -4,6 +4,7 @@ import {
   cancelRideReq,
   DriverDetails,
   DriverRideStartPayload,
+  rideCompletedReq,
   RideRequest,
   RideStatusData,
 } from "../../types/booking-types";
@@ -376,5 +377,19 @@ export class RideService implements IRideService {
         message: "ride cancelled",
       });
     } catch (error) {}
+  }
+
+  rideCompleted(rideCompletedPayload: rideCompletedReq) {
+      try {
+    const io = getIo();
+      const userRoom = `user:${rideCompletedPayload.userId}`;
+
+      io.to(userRoom).emit("ride:completed", {
+        bookingId: rideCompletedPayload.bookingId,
+        message: "ride cancelled",
+      });
+      } catch (error) {
+        
+      }
   }
 }

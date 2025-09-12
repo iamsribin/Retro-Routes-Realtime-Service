@@ -181,3 +181,8 @@ rideId:string;
 driverId:string;
 userId:string;
 }
+
+export interface rideCompletedReq{
+bookingId:string;
+userId:string;
+}
