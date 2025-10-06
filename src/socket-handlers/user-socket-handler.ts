@@ -1,10 +1,10 @@
-import { Socket, Server } from 'socket.io';
-import { setHeartbeat, addDriverGeo, getDriverDetails } from '../config/redis';
+import { Socket, Server } from "socket.io";
+import { setHeartbeat, addDriverGeo, getDriverDetails } from "../config/redis";
 // import { bookingClient } from '../rpc/booking.client';
 
 export function handleUserSocket(socket: Socket, payload: any, io: Server) {
   const { role, id } = payload || {};
-  
+
   if (!role || !id) {
     socket.disconnect(true);
     return;
@@ -16,11 +16,11 @@ export function handleUserSocket(socket: Socket, payload: any, io: Server) {
   socket.data = { id, role };
 
   // On disconnect
-  socket.on('disconnect', (reason) => {
-    console.log('socket disconnected', id, reason);
+  socket.on("disconnect", (reason) => {
+    console.log("socket disconnected", id, reason);
   });
 
-      socket.on(
+  socket.on(
     "sendMessage",
     async (data: {
       rideId: string;
@@ -41,8 +41,8 @@ export function handleUserSocket(socket: Socket, payload: any, io: Server) {
           console.error("Missing recipient ID");
           return;
         }
-        
-         const driverRoom = `driver:${data.driverId}`
+
+        const driverRoom = `driver:${data.driverId}`;
         io.to(driverRoom).emit("receiveMessage", {
           sender: data.sender,
           message: data.message,
@@ -57,6 +57,14 @@ export function handleUserSocket(socket: Socket, payload: any, io: Server) {
       }
     }
   );
+
+  socket.on("user:payment:conformation", async (data) => {
+    try {
+      console.log("user:payment:conformation",data);
+      const driverRoom = `driver:${data.driverId}`;      
+      io.to(driverRoom).emit("driver:payment:conformation",data);
+    } catch (error) {
+      console.log(error);
+    }
+  });
 }
-
-

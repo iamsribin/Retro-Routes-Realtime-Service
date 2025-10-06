@@ -1,11 +1,16 @@
 import { createRabbit } from "../config/rabbitmq";
+import { PaymentController } from "../controller/implementation/payment-controllet";
 import { RideController } from "../controller/implementation/ride-controller";
-import { BookingRequestPayload, cancelRideReq, rideCompletedReq } from "../types/booking-types";
+import {
+  BookingRequestPayload,
+  cancelRideReq,
+  rideCompletedReq,
+} from "../types/booking-types";
 import { RabbitMQPublisher } from "./publisher";
 
 export class Consumer {
   ch: any;
-  constructor(private _rideController: RideController) {}
+  constructor(private _rideController: RideController, private _paymentController: PaymentController) {}
 
   async start() {
     const { conn, ch } = await createRabbit();
@@ -15,6 +20,21 @@ export class Consumer {
     await RabbitMQPublisher.initialize(ch);
 
     console.log("🚀 Realtime service started with RabbitMQ consumers");
+
+    await ch.consume("realtime.pending_confirmation", async (msg) => {
+      if (!msg) return;
+      try {
+        const raw = msg.content.toString();
+        const payload = JSON.parse(raw);
+        console.log("realtime.pending_confirmation payload:", payload);
+
+        await this._paymentController.notifyDriverForPaymentConformation(payload)
+        ch.ack(msg);
+      } catch (err) {
+        console.error("❌ pending_confirmation handler error:", err);
+        ch.nack(msg, false, false); // DLQ
+      }
+    });
 
     await ch.consume("realtime.bookingRequest", async (msg) => {
       if (!msg) return;
@@ -38,7 +58,7 @@ export class Consumer {
         console.log("realtime.driverStartRide payload:", payload);
         await this._rideController.driverStartRideNotify(payload);
         ch.ack(msg);
-      } catch (err) {             
+      } catch (err) {
         console.error("❌ BookingRequest handler error:", err);
         ch.nack(msg, false, false); // Send to DLQ
       }
@@ -46,10 +66,10 @@ export class Consumer {
 
     await ch.consume("realtime.cancelRide", async (msg) => {
       if (!msg) return;
-              const raw = msg.content.toString();
-        const payload: cancelRideReq = JSON.parse(raw);
-      console.log("cancel ride msg:",payload);
-      this._rideController.cancelRide(payload)
+      const raw = msg.content.toString();
+      const payload: cancelRideReq = JSON.parse(raw);
+      console.log("cancel ride msg:", payload);
+      this._rideController.cancelRide(payload);
       try {
         ch.ack(msg);
       } catch (err) {
@@ -58,12 +78,12 @@ export class Consumer {
       }
     });
     // realtime.rideCompleted
-     await ch.consume("realtime.rideCompleted", async (msg) => {
+    await ch.consume("realtime.rideCompleted", async (msg) => {
       if (!msg) return;
-              const raw = msg.content.toString();
-        const payload: rideCompletedReq = JSON.parse(raw);
-      console.log("rideCompleted ride msg:",payload);
-      this._rideController.rideCompleted(payload)
+      const raw = msg.content.toString();
+      const payload: rideCompletedReq = JSON.parse(raw);
+      console.log("rideCompleted ride msg:", payload);
+      this._rideController.rideCompleted(payload);
       try {
         ch.ack(msg);
       } catch (err) {
@@ -82,7 +102,6 @@ export class Consumer {
       }
     });
   }
-
 
   // Graceful shutdown
   async stop() {

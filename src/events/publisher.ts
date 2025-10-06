@@ -18,7 +18,7 @@ export class RabbitMQPublisher {
 
       if (!published) {
         throw new Error('Failed to publish message to RabbitMQ');
-      }
+      } 
       
       console.log(`✅ Published message to ${routingKey}:`, { 
         messageId: message.toString().slice(0, 100) + '...' 

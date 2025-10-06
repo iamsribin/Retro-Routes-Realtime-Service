@@ -16,6 +16,7 @@ export async function createRabbit() {
   await ch.assertQueue('realtime.driverStartRide', { durable: true });
   await ch.assertQueue('realtime.cancelRide', { durable: true });
   await ch.assertQueue('realtime.rideCompleted', { durable: true });
+  await ch.assertQueue('realtime.pending_confirmation', { durable: true });
 
   // Driver service queues (for timeout and rejection handling)
   await ch.assertQueue('driver.rejection', { durable: true });
@@ -33,6 +34,7 @@ export async function createRabbit() {
   await ch.bindQueue('realtime.driverDocExpired', 'retro.routes', 'driver.doc.expired');
   await ch.bindQueue('realtime.cancelRide', 'retro.routes', 'cancel.ride');
   await ch.bindQueue('realtime.rideCompleted', 'retro.routes', 'ride.completed');
+  await ch.bindQueue('realtime.pending_confirmation', 'retro.routes', 'payment.pending_confirmation');
 
   // Bindings for driver service
   // await ch.bindQueue('driver.timeout', 'retro.routes', 'driver.timeout');

@@ -1,7 +1,11 @@
 import { IRideController } from "../interfaces/i-ride-controller";
 import { IRideService } from "../../services/interfaces/i-real-time-service";
 import { IResponse, StatusCode } from "../../types/common";
-import { BookingRequestPayload, cancelRideReq, rideCompletedReq } from "../../types/booking-types";
+import {
+  BookingRequestPayload,
+  cancelRideReq,
+  rideCompletedReq,
+} from "../../types/booking-types";
 import { RealTimeResponseDTO } from "../../dto/real-time.dto";
 
 export class RideController implements IRideController {
@@ -75,20 +79,19 @@ export class RideController implements IRideController {
     }
   }
 
-async cancelRide(data: cancelRideReq){
-  try {
-    this._rideService.cancelRide(data);
-  } catch (error) {
-    console.log(error);  
+  async cancelRide(data: cancelRideReq) {
+    try {
+      this._rideService.cancelRide(data);
+    } catch (error) {
+      console.log(error);
+    }
   }
-}
 
-async rideCompleted(rideCompletedPayload:rideCompletedReq){
-try {
-  this._rideService.rideCompleted(rideCompletedPayload);
-} catch (err) {
-  console.log(err);
-  
-}
-}
+  async rideCompleted(rideCompletedPayload: rideCompletedReq) {
+    try {
+      this._rideService.rideCompleted(rideCompletedPayload);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 }
