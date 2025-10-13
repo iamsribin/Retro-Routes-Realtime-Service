@@ -1,5 +1,5 @@
 
 
 export interface IPaymentService{
-notifyDriverForPaymentConformation(data:any);
+notifyDriverAndUserPaymentCompleted(data:any);
 }

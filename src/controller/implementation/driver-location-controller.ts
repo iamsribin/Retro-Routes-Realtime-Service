@@ -30,6 +30,7 @@ export class DriverLocationController implements IDriverLocationController {
     isOnRide?: boolean
   ): Promise<IResponse<null>> {
     try {
+      
       const response = await this._driverLocationService.handleDriverLocationUpdate(
           socket,
           driverId,

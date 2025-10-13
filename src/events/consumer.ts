@@ -21,12 +21,12 @@ export class Consumer {
 
     console.log("🚀 Realtime service started with RabbitMQ consumers");
 
-    await ch.consume("realtime.pending_confirmation", async (msg) => {
+    await ch.consume("realtime.payment_completed", async (msg) => {
       if (!msg) return;
       try {
         const raw = msg.content.toString();
         const payload = JSON.parse(raw);
-        console.log("realtime.pending_confirmation payload:", payload);
+        console.log("realtime.payment_completed", payload);
 
         await this._paymentController.notifyDriverForPaymentConformation(payload)
         ch.ack(msg);

@@ -5,7 +5,7 @@ export class PaymentController {
 
   async notifyDriverForPaymentConformation(data) {
     try {
-      this._paymentService.notifyDriverForPaymentConformation(data);
+      this._paymentService.notifyDriverAndUserPaymentCompleted(data);
     } catch (error) {
       console.log("====", error);
     }

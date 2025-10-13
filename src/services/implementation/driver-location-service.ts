@@ -7,39 +7,6 @@ import { IRedisRepository } from "../../repository/interfaces/i-redis-repository
 export class DriverLocationService implements IDriverLocationService {
     constructor(private _realTimeRepo: IRedisRepository){}
 
-//   async updateDriverLocationChangeToUser(data: {
-//     userId: string;
-//     driverId: string;
-//     latitude: number;
-//     longitude: number;
-//   }): Promise<IResponse<null>> {
-//     try {
-//       const io = getIo();
-//       const userRoom = `user:${data.userId}`;
-//       const driverData = {
-//         driverId: data.driverId,
-//         coordinates: {
-//           latitude: data.latitude,
-//           longitude: data.longitude,
-//         },
-//       };
-//       console.log("driver:location:change user:", driverData);
-//       io.to(userRoom).emit("driver:location:change", driverData);
-//       return {
-//         status: StatusCode.Accepted,
-//         message: "Driver location change emitted to user",
-//       };
-//     } catch (error) {
-//       console.error("Error updating driver location to user:", error);
-//       return {
-//         status: StatusCode.InternalServerError,
-//         message: `Failed to update driver location to user: ${
-//           (error as Error).message
-//         }`,
-//       };
-//     }
-//   }
-
  async handleDriverHeartbeat(driverId: string): Promise<IResponse<null>> {
     try {
       await this._realTimeRepo.setHeartbeat(driverId, 120);
@@ -77,8 +44,6 @@ export class DriverLocationService implements IDriverLocationService {
           driverId,
           coordinates,
         };
-
-        console.log("driverData",driverData);
         
         io.to(userRoom).emit("driver:location:change", driverData);
       }
