@@ -23,11 +23,13 @@ export interface DriverDetails {
   rating: number;
   cancelCount: number;
   score: number;
-  vehicleModel?: string;
-  vehicleNumber?: string;
-  driverName?: string;
-  driverPhoto?: string;
-  phoneNumber?: string;
+  vehicleModel: string;
+  vehicleNumber: string;
+  driverName: string;
+  driverPhoto: string;
+  phoneNumber: string;
+  stripeId: string;
+  stripeLinkUrl:string;
 }
 
 export interface BookingRequestPayload {
@@ -169,7 +171,7 @@ export interface RideStatusData {
   message: string;
   booking: Booking;
   driverCoordinates: Coordinates;
-  driverDetails: DriverDetails;
+  driverDetails: Omit<DriverDetails, "stripeId" | "stripeLinkUrl">;
   userId:string;
   // userDetails: UserInfo;
   chatMessages: Message[] | [];

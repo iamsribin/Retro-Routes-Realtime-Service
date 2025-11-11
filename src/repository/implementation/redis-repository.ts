@@ -3,7 +3,7 @@ import {
   GEO_KEY,
   GEO_KEY_RIDE,
   HEARTBEAT_PREFIX,
-  DRIVER_DETAILS_PREFIX,
+  ONLINE_DRIVER_DETAILS_PREFIX,
   RIDE_DRIVER_DETAILS_PREFIX,
   BOOKING_REQUEST_PREFIX,
   DRIVER_REQUEST_PREFIX,
@@ -35,7 +35,7 @@ export class RedisRepository implements IRedisRepository {
 
   async getDriverDetails(driverId: string, isOnRide = false): Promise<DriverDetails | null> {
     try {
-      const prefix = isOnRide ? RIDE_DRIVER_DETAILS_PREFIX : DRIVER_DETAILS_PREFIX;
+      const prefix = isOnRide ? RIDE_DRIVER_DETAILS_PREFIX : ONLINE_DRIVER_DETAILS_PREFIX;
       const details = await redis.get(`${prefix}${driverId}`);
       return details ? JSON.parse(details) : null;
     } catch (error) {
@@ -85,7 +85,7 @@ export class RedisRepository implements IRedisRepository {
 
   async setDriverDetails(details: DriverDetails, isOnRide = false,ttlSeconds=120): Promise<void> {
     try {
-      const prefix = isOnRide ? RIDE_DRIVER_DETAILS_PREFIX : DRIVER_DETAILS_PREFIX;
+      const prefix = isOnRide ? RIDE_DRIVER_DETAILS_PREFIX : ONLINE_DRIVER_DETAILS_PREFIX;
 
   const key = `${prefix}${details.driverId}`;
   await redis.set(key, JSON.stringify(details), "EX", ttlSeconds);    } catch (error) {

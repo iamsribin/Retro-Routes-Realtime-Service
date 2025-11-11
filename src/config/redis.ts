@@ -14,7 +14,7 @@ export const redis = new Redis(REDIS_URL);
 export const GEO_KEY = "onlineDrivers:geo";
 export const GEO_KEY_RIDE = "rideDrivers:geo";
 export const HEARTBEAT_PREFIX = "driver:heartbeat:";
-export const DRIVER_DETAILS_PREFIX = ":onlineDriver:details:";
+export const ONLINE_DRIVER_DETAILS_PREFIX = ":onlineDriver:details:";
 export const RIDE_DRIVER_DETAILS_PREFIX = ":rideDriver:details:";
 export const BOOKING_REQUEST_PREFIX = "booking:request:";
 export const DRIVER_REQUEST_PREFIX = "driver:request:";
@@ -35,7 +35,7 @@ export async function isDriverOnline(driverId: string) {
 
 export async function removeOnlineDriver(id: string, isRide: boolean = false) {
   try {
-    let keyPrefix = DRIVER_DETAILS_PREFIX;
+    let keyPrefix = ONLINE_DRIVER_DETAILS_PREFIX;
     if (isRide) keyPrefix = RIDE_DRIVER_DETAILS_PREFIX;
 
     const key = `${HEARTBEAT_PREFIX}${id}`;
@@ -60,7 +60,7 @@ export async function setDriverDetails(
   isRide: boolean = false,
   ttlSeconds = 120,
 ) {
-  let keyPrefix = DRIVER_DETAILS_PREFIX;
+  let keyPrefix = ONLINE_DRIVER_DETAILS_PREFIX;
   if (isRide) keyPrefix = RIDE_DRIVER_DETAILS_PREFIX;
 
   const key = `${keyPrefix}${driverDetails.driverId}`;
@@ -74,7 +74,7 @@ export async function getDriverDetails(
   isRide: boolean = false
 ) {
   try {
-    let keyPrefix = DRIVER_DETAILS_PREFIX;
+    let keyPrefix = ONLINE_DRIVER_DETAILS_PREFIX;
     if (isRide) keyPrefix = RIDE_DRIVER_DETAILS_PREFIX;
 
     const key = `${keyPrefix}${driverId}`;
