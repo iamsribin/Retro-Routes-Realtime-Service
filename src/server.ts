@@ -1,25 +1,25 @@
 import express from 'express';
 import http from 'http';
 import { initSocket } from './socket';
-import { Consumer } from './events/consumer';
+// import { Consumer } from './events/consumer';
 // import { RealtimeService } from './services/realtime-service';
 import "dotenv/config";
 // import { RideController } from './controller/ride-controller';
-import "../src/utils/monitor-online-driver"
-import { RideController } from './controller/implementation/ride-controller';
-import { PaymentController } from './controller/implementation/payment-controllet';
-import { RedisRepository } from './repository/implementation/redis-repository';
-import { RabbitMQPublisher } from './events/publisher';
-import { RideService } from './services/implementation/ride-service';
-import { PaymentService } from './services/implementation/payment-service';
+// import "../src/utils/monitor-online-driver"
+// import { RideController } from './controller/implementation/ride-controller';
+// import { PaymentController } from './controller/implementation/payment-controllet';
+// import { RedisRepository } from './repository/implementation/redis-repository';
+// import { RabbitMQPublisher } from './events/publisher';
+// import { RideService } from './services/implementation/ride-service';
+// import { PaymentService } from './services/implementation/payment-service';
 
 
-  const redisRepo = new RedisRepository();
+  // const redisRepo = new RedisRepository();
 
-  const realTimeService = new RideService(redisRepo);
-  const paymentService = new PaymentService()
-  const rideController = new RideController(realTimeService);
-  const paymentController = new PaymentController(paymentService)
+  // const realTimeService = new RideService(redisRepo);
+  // const paymentService = new PaymentService()
+  // const rideController = new RideController(realTimeService);
+  // const paymentController = new PaymentController(paymentService)
 
 const app = express();
 
@@ -33,12 +33,12 @@ app.get('/health', (req, res) => {
 const server = http.createServer(app);
 
 const io = initSocket(server);
-// const realtime = new RealtimeService();
-const consumer = new Consumer(rideController,paymentController)
-consumer.start().catch(err => {
-  console.error('Failed to start realtime service', err);
-  process.exit(1);
-});
+// // const realtime = new RealtimeService();
+// const consumer = new Consumer(rideController,paymentController)
+// consumer.start().catch(err => {
+//   console.error('Failed to start realtime service', err);
+//   process.exit(1);
+// });
 
 const PORT = process.env.PORT || 3002;
 

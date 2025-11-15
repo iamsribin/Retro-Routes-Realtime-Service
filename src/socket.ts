@@ -1,6 +1,6 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { AuthenticatedSocket, authenticateSocket } from './middleware/authenticate-socket';
+import { authenticateSocket } from './middleware/authenticate-socket';
 import { handleSocketConnection } from './socket-handlers/handle-socket-connection';
 
 let io: SocketIOServer;
@@ -17,7 +17,9 @@ export const initSocket = (server: HttpServer): SocketIOServer => {
   console.log(`Socket.IO initialized with CORS origin: ${process.env.CORS_ORIGIN}`);
 
   io.use(authenticateSocket);
-  io.on("connection", (socket: AuthenticatedSocket) => {
+  io.on("connection", (socket) => {
+    console.log("connetion....");
+    
     handleSocketConnection(socket, io);
   });
 

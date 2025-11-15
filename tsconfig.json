@@ -1,25 +1,34 @@
-// {
-//   "compilerOptions": {
-//     "target": "ES2020",
-//     "module": "commonjs",
-//     "moduleResolution": "node",
-//     "esModuleInterop": true,
-//     "strict": true,
-//     "skipLibCheck": true,
-//     "forceConsistentCasingInFileNames": true,
-//     "outDir": "./build",         
-//     "rootDir": "./src",         
-//     "noEmit": true               
-//   },
-//   "include": ["src"]             
-// }
 
 {
   "compilerOptions": {
-    "target": "es2015",
-    "moduleResolution": "node",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "baseUrl": "./",
+    "outDir": "./dist",
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "rootDir": "src",
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "types": [
+      "reflect-metadata"
+    ],
+    "lib": [
+      "ES2020",
+      "dom"
+    ]
   },
-  "include": ["src"]
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }
